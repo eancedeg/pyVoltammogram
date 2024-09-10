@@ -3,7 +3,9 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QFileDialog, QVBoxLayout, QListWidgetItem
 from ui.VoltamUI import Ui_VoltammetryWindow
 from plot.volplot import MplCanvas
+from parser.volffile import Voltammogram
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+
 
 
 class VoltWindow(QtWidgets.QMainWindow):
@@ -28,29 +30,22 @@ class VoltWindow(QtWidgets.QMainWindow):
         file_name = QFileDialog.getOpenFileName(self, 'Select File ...', '',
                                                 'Text Files (*.txt);;All Files (*)')
         if file_name[0]:
-            with open(file_name[0]) as data_file:
-                section = 1
-                x_data = []
-                y_data = []
-                for line in data_file:
-                    line_data = line.strip()
-                    if line_data:
-                        try:
-                            x, y = [float(n) for n in line_data.split(',')]
-                            x_data.append(x)
-                            y_data.append(y)
-                        except ValueError as e:
-                            print(f'Error processing line: {line_data}, Error: {e}')
-                    else:
-                        if x_data and y_data:
-                            # print(f'Data before clearing: X -> {x_data}, Y -> {y_data}')
-                            self.add_cycle(f'Cycle {section}', x_data, y_data)
-                            section += 1
-                            x_data = []
-                            y_data = []
-                if x_data and y_data:
-                    # print(f'Data before clearing: X -> {x_data}, Y -> {y_data}')
-                    self.add_cycle(f'Cycle {section}', x_data, y_data)
+            voltfile = Voltammogram(file_name[0])
+            voltdata = voltfile.voltdata
+            cycleindexdf = voltdata[voltdata['Potential'] == voltfile.lowvolt]
+            cycleindex = cycleindexdf.index
+            numcycles = len(cycleindex.tolist()) + 1
+
+            for i in range(numcycles):
+                if i == 0:
+                    cycledata = voltdata.iloc[:cycleindex[i], :]
+                    self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+                elif i == numcycles - 1:
+                    cycledata = voltdata.iloc[cycleindex[i - 1]:, :]
+                    self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+                else:
+                    cycledata = voltdata.iloc[cycleindex[i - 1]: cycleindex[i], :]
+                    self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
 
     def update_plot(self, item):
         mydata = item.data(100)

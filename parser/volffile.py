@@ -1,4 +1,5 @@
 from datetime import datetime
+import pandas as pd
 
 
 class Voltammogram(object):
@@ -42,9 +43,9 @@ class Voltammogram(object):
                 if data_section:
                     line = volt.readline()
                     if line:
-                        print(f'Algo -> {line}')
-
-                        print([(float(v.strip()), float(i.strip())) for v, i in [line.split(',')]])
+                        linedata = [[float(v.strip()), float(i.strip())] for v, i in [line.split(',')]]
+                        self.voltdata.append(linedata[0])
+        self.voltdata = pd.DataFrame(self.voltdata, columns=['Potential', 'Current'])
 
 
 if __name__ == '__main__':
