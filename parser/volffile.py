@@ -47,6 +47,22 @@ class Voltammogram(object):
                         self.voltdata.append(linedata[0])
         self.voltdata = pd.DataFrame(self.voltdata, columns=['Potential', 'Current'])
 
+    def get_cycles(self):
+        index_df = self.voltdata[self.voltdata['Potential'] == self.lowvolt]
+        indexes = index_df.index
+        numcycles = len(indexes.tolist()) + 1
+
+        for i in range(numcycles):
+            if i == 0:
+                cycledata = voltdata.iloc[:cycleindex[i], :]
+                self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+            elif i == numcycles - 1:
+                cycledata = voltdata.iloc[cycleindex[i - 1]:, :]
+                self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+            else:
+                cycledata = voltdata.iloc[cycleindex[i - 1]: cycleindex[i], :]
+                self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+
 
 if __name__ == '__main__':
     v = Voltammogram('../src/cv sb-5(-1800a1400) 200 mvs.txt')
