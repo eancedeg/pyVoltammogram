@@ -1,5 +1,7 @@
 from datetime import datetime
 import pandas as pd
+import argparse
+import os
 
 
 class Voltammogram(object):
@@ -48,22 +50,38 @@ class Voltammogram(object):
         self.voltdata = pd.DataFrame(self.voltdata, columns=['Potential', 'Current'])
 
     def get_cycles(self):
+        cycles = []
         index_df = self.voltdata[self.voltdata['Potential'] == self.lowvolt]
+
+        if self.initvolt == self.lowvolt:
+            index_df = index_df.drop(0)
+
         indexes = index_df.index
         numcycles = len(indexes.tolist()) + 1
 
         for i in range(numcycles):
             if i == 0:
-                cycledata = voltdata.iloc[:cycleindex[i], :]
-                self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+                cycledata = self.voltdata.iloc[:indexes[i], :]
+                cycles.append(cycledata)
             elif i == numcycles - 1:
-                cycledata = voltdata.iloc[cycleindex[i - 1]:, :]
-                self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+                cycledata = self.voltdata.iloc[indexes[i - 1]:, :]
+                cycles.append(cycledata)
             else:
-                cycledata = voltdata.iloc[cycleindex[i - 1]: cycleindex[i], :]
-                self.add_cycle(f'Cycle {i + 1}', cycledata['Potential'], cycledata['Current'])
+                cycledata = self.voltdata.iloc[indexes[i - 1]: indexes[i], :]
+                cycles.append(cycledata)
+        return cycles
 
 
 if __name__ == '__main__':
-    v = Voltammogram('../src/cv sb-5(-1800a1400) 200 mvs.txt')
-    print(v.voltdata)
+    parser = argparse.ArgumentParser(description='Extract voltammetry cycles')
+    parser.add_argument('file', type=str, help='Path to voltammetry file')
+    parser.add_argument('--nth', default=-1, type=int, help='Number of cycle to extract')
+    args = parser.parse_args()
+
+    file = args.file
+    nth = args.nth
+
+    v = Voltammogram(file)
+    cycle = v.get_cycles()[nth]
+    basename = os.path.splitext(os.path.split(file)[1])[0]
+    cycle.to_csv(f'{basename}_origin.csv', index=None)
